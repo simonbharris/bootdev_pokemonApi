@@ -1,14 +1,18 @@
 package pokemonapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"pokemoncli/internal/pokecache"
 )
 
 const basePokemonApiUrlFormat = "https://pokeapi.co/api/v2/%v/?offset=0&limit=20"
 
 var pageStateMap map[string]ResourceList
+var cache pokecache.PokeCache
 
 type ResourceList struct {
 	Count    int             `json:"count"`
@@ -24,6 +28,7 @@ type NamedResource struct {
 
 func init() {
 	pageStateMap = make(map[string]ResourceList)
+	cache = pokecache.NewCache(5)
 }
 
 func GetNextPage(resource string) (ResourceList, error) {
@@ -59,22 +64,55 @@ func fetchPage(resource string, pageRef func(ResourceList) *string) (ResourceLis
 	return response, nil
 }
 
-func getResourceInternal(url string) (ResourceList, error) {
-	zero := ResourceList{}
+func getUrl(url string) (*http.Response, error) {
 	res, err := http.Get(url)
 	fmt.Println("Calling GET " + url)
 	if err != nil {
-		return zero, fmt.Errorf("error when fetching %v: %w", url, err)
-	}
-	if res.StatusCode >= 300 {
-		return zero, fmt.Errorf("error unexpected status when GET '%v': %v (%d)", url, res.Status, res.StatusCode)
+		return nil, fmt.Errorf("error when fetching %v: %w", url, err)
 	}
 	if res.StatusCode == 404 {
-		return zero, fmt.Errorf("resource doesn't exist at: %v", url)
+		return nil, fmt.Errorf("resource doesn't exist at: %v", url)
+	}
+	if res.StatusCode >= 300 {
+		return nil, fmt.Errorf("error unexpected status when GET '%v': %v (%d)", url, res.Status, res.StatusCode)
+	}
+	return res, nil
+}
+
+func getResourceInternal(url string) (ResourceList, error) {
+	zero := ResourceList{}
+	resourceList := ResourceList{}
+
+	if cacheData, found := cache.Get(url); found {
+		buf := &bytes.Buffer{}
+		_, err := buf.Write(cacheData)
+		if err != nil {
+			// This shouldn't ever happen
+			panic(err)
+		}
+
+		decoder := json.NewDecoder(buf)
+		err = decoder.Decode(&resourceList)
+		fmt.Printf("%v Was found in cache\n", url)
+		if err != nil {
+			return ResourceList{}, err
+		}
+		return resourceList, nil
 	}
 
-	resourceList := ResourceList{}
-	decoder := json.NewDecoder(res.Body)
+	res, err := getUrl(url)
+	if err != nil {
+		return ResourceList{}, err
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return ResourceList{}, err
+	}
+	cache.Add(url, bodyBytes)
+
+	bReader := bytes.NewReader(bodyBytes)
+	decoder := json.NewDecoder(bReader)
 	err = decoder.Decode(&resourceList)
 	defer res.Body.Close()
 	if err != nil {
