@@ -1,6 +1,7 @@
 package pokecache
 
 import (
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -42,6 +43,7 @@ func (pCache *PokeCache) Get(key string) ([]byte, bool) {
 	if !found {
 		return nil, false
 	}
+	slog.Debug("Pokecache - Cache hit: " + key)
 	return data.val, true
 }
 
@@ -52,6 +54,7 @@ func (pCache *PokeCache) Add(key string, val []byte) {
 		val:       val,
 		timestamp: time.Now(),
 	}
+	slog.Debug("Pokecache - Added to cache: " + key)
 }
 
 func (pCache *PokeCache) reapLoop(ttl time.Time) {
