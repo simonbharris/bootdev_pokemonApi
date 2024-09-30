@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"pokemoncli/internal/pokecache"
+	"strings"
 )
 
-const basePokemonApiUrlFormat = "https://pokeapi.co/api/v2/%v/?offset=0&limit=20"
+const defaultRouteFormat = "%v/?offset=0&limit=20"
 
-var pageStateMap map[string]ResourceList
+var pageState map[string]ResourceList
 var cache pokecache.PokeCache
 
 type ResourceList struct {
@@ -27,7 +26,7 @@ type NamedResource struct {
 }
 
 func init() {
-	pageStateMap = make(map[string]ResourceList)
+	pageState = make(map[string]ResourceList)
 	cache = pokecache.NewCache(5)
 }
 
@@ -44,83 +43,41 @@ func GetPreviousPage(resource string) (ResourceList, error) {
 }
 
 func fetchPage(resource string, pageRef func(ResourceList) *string) (ResourceList, error) {
-	lastState, found := pageStateMap[resource]
-	url := ""
+	lastState, found := pageState[resource]
+	route := ""
 
 	if !found {
-		url = fmt.Sprintf(basePokemonApiUrlFormat, resource)
+		route = fmt.Sprintf(defaultRouteFormat, resource)
 	} else {
 		val := pageRef(lastState)
 		if val == nil {
 			return ResourceList{}, fmt.Errorf("reached the end of the pages")
 		}
-		url = *(pageRef(lastState))
+		url := *(pageRef(lastState))
+		// stripping the base url as the api wrapper always adds this.
+		route = strings.Replace(url, BaseUrl, "", 1)
 	}
-	response, err := getResourceInternal(url)
+	result := ResourceList{}
+	err := getResourceInternal(route, &result)
 	if err != nil {
 		return ResourceList{}, err
 	}
-	pageStateMap[resource] = response
-	return response, nil
+	pageState[resource] = result
+	return result, nil
 }
 
-func getUrl(url string) (*http.Response, error) {
-	res, err := http.Get(url)
-	fmt.Println("Calling GET " + url)
+func getResourceInternal[T any](route string, out *T) error {
+
+	content, err := GetApiContent(route)
 	if err != nil {
-		return nil, fmt.Errorf("error when fetching %v: %w", url, err)
-	}
-	if res.StatusCode == 404 {
-		return nil, fmt.Errorf("resource doesn't exist at: %v", url)
-	}
-	if res.StatusCode >= 300 {
-		return nil, fmt.Errorf("error unexpected status when GET '%v': %v (%d)", url, res.Status, res.StatusCode)
-	}
-	return res, nil
-}
-
-func getResourceInternal(url string) (ResourceList, error) {
-	zero := ResourceList{}
-	resourceList := ResourceList{}
-
-	if cacheData, found := cache.Get(url); found {
-		buf := &bytes.Buffer{}
-		_, err := buf.Write(cacheData)
-		if err != nil {
-			// This shouldn't ever happen
-			panic(err)
-		}
-
-		decoder := json.NewDecoder(buf)
-		err = decoder.Decode(&resourceList)
-		fmt.Printf("%v Was found in cache\n", url)
-		if err != nil {
-			return ResourceList{}, err
-		}
-		return resourceList, nil
+		return err
 	}
 
-	res, err := getUrl(url)
-	if err != nil {
-		return ResourceList{}, err
-	}
-
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return ResourceList{}, err
-	}
-	cache.Add(url, bodyBytes)
-
-	bReader := bytes.NewReader(bodyBytes)
+	bReader := bytes.NewReader(content)
 	decoder := json.NewDecoder(bReader)
-	err = decoder.Decode(&resourceList)
-	defer res.Body.Close()
+	err = decoder.Decode(out)
 	if err != nil {
-		return zero, fmt.Errorf("error when decoding data at %v: %w", url, err)
+		return fmt.Errorf("error when decoding data at %v: %w", route, err)
 	}
-
-	for _, resource := range resourceList.Results {
-		fmt.Printf("%v\n", resource.Name)
-	}
-	return resourceList, nil
+	return nil
 }
