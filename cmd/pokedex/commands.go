@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"pokemoncli/internal/pokemonapi"
+	"sort"
 )
 
 func commandExit() error {
@@ -14,8 +15,16 @@ func commandExit() error {
 func commandHelp() error {
 	cliCommands := getCliCommands()
 	fmt.Println("Usage:")
-
+	keys := make([]string, len(cliCommands))
+	i := 0
 	for k := range cliCommands {
+		keys[i] = k
+		i++
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] > keys[j]
+	})
+	for _, k := range keys {
 		fmt.Printf("%s: %s\n", cliCommands[k].name, cliCommands[k].description)
 	}
 	fmt.Println()
