@@ -12,6 +12,38 @@ import (
 
 const BaseUrl = "https://pokeapi.co/api/v2/"
 
+// Retrieves the content from pokemon API at the `route` specified. It should not begin with a `/`. Returns a []byte of the response content.
+func GetResource[T any](route string, out *T) error {
+	content, err := getApiContent(route)
+	if err != nil {
+		var zero T
+		if strings.HasPrefix(err.Error(), "resource doesn't exist at:") {
+			slog.Info("No resources found for route: " + route)
+			*out = zero
+			return nil
+		}
+		return err
+	}
+
+	if len(content) <= 2 {
+		slog.Warn(fmt.Sprintf("API Response returned with little content. Perhaps a serialization issue? \n\tRoute: %v\n\t response: %v", route, string(content[:])))
+	}
+	bReader := bytes.NewReader(content)
+	decoder := json.NewDecoder(bReader)
+	err = decoder.Decode(out)
+	if err != nil {
+		return fmt.Errorf("error when decoding data at %v: %w", route, err)
+	}
+	return nil
+}
+
+// Retrieves the content from pokemon API at the `routeFormat` specified. It should not begin with a `/`.
+// Use the %v formatter to specify where the `id` should go in the route.
+// Returns a []byte of the response content.
+func GetResourceWithId[T any](routeFormat, id string, out *T) error {
+	return GetResource(fmt.Sprintf(routeFormat, id), out)
+}
+
 // `route` should include everything after the base url, including the query parameters.
 func get(route string) (*http.Response, error) {
 	fullUrl := BaseUrl + route
@@ -30,9 +62,6 @@ func get(route string) (*http.Response, error) {
 	return res, nil
 }
 
-// Retrieves the content from pokemon API at the `routeFormat` specified. It should not begin with a `/`.
-// Use the %v formatter to specify where the `id` should go in the route.
-// Returns a []byte of the response content.
 func getApiContentWithId(routeFormat, id string) ([]byte, error) {
 	if len(routeFormat) == 0 {
 		return nil, fmt.Errorf("url cannot be empty")
@@ -48,7 +77,6 @@ func getApiContentWithId(routeFormat, id string) ([]byte, error) {
 	return getApiContent(fullResourceRoute)
 }
 
-// Retrieves the content from pokemon API at the `route` specified. It should not begin with a `/`. Returns a []byte of the response content.
 func getApiContent[T struct{}](route string) ([]byte, error) {
 	if len(route) == 0 {
 		return nil, fmt.Errorf("url cannot be empty")
@@ -76,32 +104,4 @@ func getApiContent[T struct{}](route string) ([]byte, error) {
 	cache.Add(route, bodyBytes)
 
 	return bodyBytes, nil
-}
-
-func GetResource[T any](route string, out *T) error {
-	content, err := getApiContent(route)
-	if err != nil {
-		var zero T
-		if strings.HasPrefix(err.Error(), "resource doesn't exist at:") {
-			slog.Info("No resources found for route: " + route)
-			*out = zero
-			return nil
-		}
-		return err
-	}
-
-	if len(content) <= 2 {
-		slog.Warn(fmt.Sprintf("API Response returned with little content. Perhaps a serialization issue? \n\tRoute: %v\n\t response: %v", route, string(content[:])))
-	}
-	bReader := bytes.NewReader(content)
-	decoder := json.NewDecoder(bReader)
-	err = decoder.Decode(out)
-	if err != nil {
-		return fmt.Errorf("error when decoding data at %v: %w", route, err)
-	}
-	return nil
-}
-
-func GetResourceWithId[T any](routeFormat, id string, out *T) error {
-	return GetResource(fmt.Sprintf(routeFormat, id), out)
 }
