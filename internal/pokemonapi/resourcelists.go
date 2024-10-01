@@ -1,8 +1,6 @@
 package pokemonapi
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"pokemoncli/internal/pokecache"
 	"strings"
@@ -58,26 +56,10 @@ func fetchPage(resource string, pageRef func(ResourceList) *string) (ResourceLis
 		route = strings.Replace(url, BaseUrl, "", 1)
 	}
 	result := ResourceList{}
-	err := getResourceInternal(route, &result)
+	err := GetResource(route, &result)
 	if err != nil {
 		return ResourceList{}, err
 	}
 	pageState[resource] = result
 	return result, nil
-}
-
-func getResourceInternal[T any](route string, out *T) error {
-
-	content, err := GetApiContent(route)
-	if err != nil {
-		return err
-	}
-
-	bReader := bytes.NewReader(content)
-	decoder := json.NewDecoder(bReader)
-	err = decoder.Decode(out)
-	if err != nil {
-		return fmt.Errorf("error when decoding data at %v: %w", route, err)
-	}
-	return nil
 }

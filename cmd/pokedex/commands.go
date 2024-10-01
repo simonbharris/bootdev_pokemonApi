@@ -7,12 +7,12 @@ import (
 	"sort"
 )
 
-func commandExit() error {
+func commandExit(args ...string) error {
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp() error {
+func commandHelp(args ...string) error {
 	cliCommands := getCliCommands()
 	fmt.Println("Usage:")
 	keys := make([]string, len(cliCommands))
@@ -31,7 +31,7 @@ func commandHelp() error {
 	return nil
 }
 
-func commandMap() error {
+func commandMap(args ...string) error {
 	locations, err := pokemonapi.GetNextPage("location")
 	if err != nil {
 		return fmt.Errorf("error when fetching location data: %w", err)
@@ -43,7 +43,7 @@ func commandMap() error {
 	return nil
 }
 
-func commandMapb() error {
+func commandMapb(args ...string) error {
 	locations, err := pokemonapi.GetPreviousPage("location")
 	if err != nil {
 		return fmt.Errorf("error when fetching location data: %w", err)
@@ -51,6 +51,24 @@ func commandMapb() error {
 
 	for _, location := range locations.Results {
 		fmt.Printf("%v\n", location.Name)
+	}
+	return nil
+}
+
+func commandExplore(args ...string) error {
+	if len(args) != 1 {
+		fmt.Println("explore requires exactly 1 area name. See help")
+	}
+	locationName := args[0]
+	pokemonNames, err := pokemonapi.Explore(locationName)
+	if err != nil {
+		return err
+	}
+	if len(pokemonNames) == 0 {
+		fmt.Println("Area has no pokemon.")
+	}
+	for _, name := range pokemonNames {
+		fmt.Printf(" - %v\n", name)
 	}
 	return nil
 }

@@ -2,8 +2,10 @@ package pokemonapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -31,7 +33,7 @@ func get(route string) (*http.Response, error) {
 // Retrieves the content from pokemon API at the `routeFormat` specified. It should not begin with a `/`.
 // Use the %v formatter to specify where the `id` should go in the route.
 // Returns a []byte of the response content.
-func GetApiContentWithId(routeFormat, id string) ([]byte, error) {
+func getApiContentWithId(routeFormat, id string) ([]byte, error) {
 	if len(routeFormat) == 0 {
 		return nil, fmt.Errorf("url cannot be empty")
 	}
@@ -43,11 +45,11 @@ func GetApiContentWithId(routeFormat, id string) ([]byte, error) {
 	}
 
 	fullResourceRoute := fmt.Sprintf(routeFormat, id)
-	return GetApiContent(fullResourceRoute)
+	return getApiContent(fullResourceRoute)
 }
 
 // Retrieves the content from pokemon API at the `route` specified. It should not begin with a `/`. Returns a []byte of the response content.
-func GetApiContent[T struct{}](route string) ([]byte, error) {
+func getApiContent[T struct{}](route string) ([]byte, error) {
 	if len(route) == 0 {
 		return nil, fmt.Errorf("url cannot be empty")
 	}
@@ -73,4 +75,32 @@ func GetApiContent[T struct{}](route string) ([]byte, error) {
 	cache.Add(route, bodyBytes)
 
 	return bodyBytes, nil
+}
+
+func GetResource[T any](route string, out *T) error {
+	content, err := getApiContent(route)
+	if err != nil {
+		var zero T
+		if strings.HasPrefix(err.Error(), "resource doesn't exist at:") {
+			slog.Info("No resources found for route: " + route)
+			*out = zero
+			return nil
+		}
+		return err
+	}
+
+	if len(content) <= 2 {
+		slog.Warn(fmt.Sprintf("API Response returned with little content. Perhaps a serialization issue? \n\tRoute: %v\n\t response: %v", route, string(content[:])))
+	}
+	bReader := bytes.NewReader(content)
+	decoder := json.NewDecoder(bReader)
+	err = decoder.Decode(out)
+	if err != nil {
+		return fmt.Errorf("error when decoding data at %v: %w", route, err)
+	}
+	return nil
+}
+
+func GetResourceWithId[T any](routeFormat, id string, out *T) error {
+	return GetResource(fmt.Sprintf(routeFormat, id), out)
 }
