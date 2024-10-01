@@ -15,17 +15,18 @@ func commandExit(args ...string) error {
 func commandHelp(args ...string) error {
 	cliCommands := getCliCommands()
 	fmt.Println("Usage:")
-	keys := make([]string, len(cliCommands))
+	arr := make([]cliCommand, len(cliCommands))
 	i := 0
-	for k := range cliCommands {
-		keys[i] = k
+	for _, v := range cliCommands {
+		arr[i] = v
 		i++
 	}
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] > keys[j]
+	sort.Slice(arr, func(i, j int) bool {
+		// ascending order
+		return arr[i].sortOrder < arr[j].sortOrder
 	})
-	for _, k := range keys {
-		fmt.Printf("%s: %s\n", cliCommands[k].name, cliCommands[k].description)
+	for i := range arr {
+		fmt.Printf("%s: %s\n", arr[i].name, arr[i].description)
 	}
 	fmt.Println()
 	return nil
