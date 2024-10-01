@@ -12,3 +12,15 @@ Assuming you have the [golang development environment](https://go.dev/doc/instal
 ```sh
 go build .\cmd\pokedex\; .\pokedex.exe
 ```
+
+```sh
+Pokedex > help
+time=2024-09-30T21:47:28.027-07:00 level=DEBUG msg="command received: help"
+Usage:
+help: Returns help information
+exit: exits the pokedex
+map: Returns a page of 20 locations, repeated calls return the next page.
+mapb: Returns a prior page of 20 locations. repeated calls move return prior pages.
+explore: Returns what pokemon can be found in specified area.
+        Usage: explore area-name
+```
