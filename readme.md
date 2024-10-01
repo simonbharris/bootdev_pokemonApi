@@ -15,7 +15,6 @@ go build .\cmd\pokedex\; .\pokedex.exe
 
 ```sh
 Pokedex > help
-time=2024-09-30T21:47:28.027-07:00 level=DEBUG msg="command received: help"
 Usage:
 help: Returns help information
 exit: exits the pokedex
