@@ -69,6 +69,7 @@ func getApiContent[T struct{}](route string) ([]byte, error) {
 	}
 
 	bodyBytes, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
