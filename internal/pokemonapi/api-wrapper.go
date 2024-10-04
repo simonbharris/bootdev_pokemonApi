@@ -37,13 +37,6 @@ func GetResource[T any](route string, out *T) error {
 	return nil
 }
 
-// Retrieves the content from pokemon API at the `routeFormat` specified. It should not begin with a `/`.
-// Use the %v formatter to specify where the `id` should go in the route.
-// Returns a []byte of the response content.
-func GetResourceWithId[T any](routeFormat, id string, out *T) error {
-	return GetResource(fmt.Sprintf(routeFormat, id), out)
-}
-
 // `route` should include everything after the base url, including the query parameters.
 func get(route string) (*http.Response, error) {
 	fullUrl := BaseUrl + route

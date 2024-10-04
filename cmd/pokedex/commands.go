@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"pokemoncli/internal/pokedexservice"
 	"pokemoncli/internal/pokemonapi"
 	"sort"
 )
@@ -33,7 +34,7 @@ func commandHelp(args ...string) error {
 }
 
 func commandMap(args ...string) error {
-	locations, err := pokemonapi.GetNextPage("location")
+	locations, err := pokemonapi.GetNextResourceListPage("location")
 	if err != nil {
 		return fmt.Errorf("error when fetching location data: %w", err)
 	}
@@ -45,7 +46,7 @@ func commandMap(args ...string) error {
 }
 
 func commandMapb(args ...string) error {
-	locations, err := pokemonapi.GetPreviousPage("location")
+	locations, err := pokemonapi.GetPreviousResourceListPage("location")
 	if err != nil {
 		return fmt.Errorf("error when fetching location data: %w", err)
 	}
@@ -59,9 +60,10 @@ func commandMapb(args ...string) error {
 func commandExplore(args ...string) error {
 	if len(args) != 1 {
 		fmt.Println("explore requires exactly 1 area name. See help")
+		return nil
 	}
 	locationName := args[0]
-	pokemonNames, err := pokemonapi.Explore(locationName)
+	pokemonNames, err := pokedexservice.Explore(locationName)
 	if err != nil {
 		return err
 	}
@@ -70,6 +72,26 @@ func commandExplore(args ...string) error {
 	}
 	for _, name := range pokemonNames {
 		fmt.Printf(" - %v\n", name)
+	}
+	return nil
+}
+
+func commandCatch(args ...string) error {
+	if len(args) != 1 {
+		fmt.Println("explore requires exactly 1 area name. See help")
+		return nil
+	}
+	pokemonName := args[0]
+
+	isCaught, err := pokedexservice.Catch(pokemonName)
+	if err != nil {
+		return err
+	}
+
+	if isCaught {
+		fmt.Printf("%v was caught!\n", pokemonName)
+	} else {
+		fmt.Printf("%v escaped!\n", pokemonName)
 	}
 	return nil
 }

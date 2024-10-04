@@ -30,7 +30,7 @@ func getCliCommands() map[string]cliCommand {
 		"mapb": {
 			name:        "mapb",
 			sortOrder:   4,
-			description: `Returns a prior page of 20 locations. repeated calls move return prior pages.`,
+			description: "Returns a prior page of 20 locations. repeated calls move return prior pages.",
 			callback:    commandMapb,
 		},
 		"explore": {
@@ -38,6 +38,12 @@ func getCliCommands() map[string]cliCommand {
 			sortOrder:   5,
 			description: "Returns what pokemon can be found in specified area.\n\tUsage: explore area-name",
 			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch",
+			sortOrder:   6,
+			description: "Attempts to catch a pokemon. Some pokemon are harder to catch than others! If successful, adds them to the pokedex.",
+			callback:    commandCatch,
 		},
 	}
 }
