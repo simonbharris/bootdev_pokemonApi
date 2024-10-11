@@ -6,51 +6,19 @@ import (
 	"math"
 	"math/rand"
 	"pokemoncli/internal/pokemonapi"
-	"strconv"
-	"strings"
 )
 
-var discoveredPokemon map[string]pokemonapi.Pokemon
-
-func init() {
-	discoveredPokemon = make(map[string]pokemonapi.Pokemon)
-}
-
-func Inspect(pokemonName string) {
-	pokemon, found := discoveredPokemon[pokemonName]
+func Inspect(pokedex map[string]pokemonapi.Pokemon, pokemonName string) pokemonapi.Pokemon {
+	pokemon, found := pokedex[pokemonName]
 	if !found {
-		fmt.Println("you have not caught that pokemon")
-		return
+		return pokemonapi.Pokemon{}
 	}
-	printMainValue("Name", pokemon.Name)
-	printMainValue("Height", strconv.Itoa(pokemon.Height))
-	printMainValue("Weight", strconv.Itoa(pokemon.Weight))
-	printMainValue("Stats", "")
-	for _, statData := range pokemon.Stats {
-		printListValues(statData.Stat.Name, strconv.Itoa(statData.BaseStat))
-	}
-	printMainValue("Types", "")
-	for _, pType := range pokemon.Types {
-		printListValues(pType.Type.Name, "")
-	}
-}
-
-func printMainValue(key, value string) {
-	fmt.Printf("%v: %v\n", key, value)
-}
-
-// if value is 0-length, don't print a `:`
-func printListValues(key, value string) {
-	if len(value) == 0 {
-		fmt.Printf("  - %v\n", strings.ToLower(key))
-	} else {
-		fmt.Printf("  -%v: %v\n", strings.ToLower(key), value)
-	}
+	return pokemon
 }
 
 // Attempts to capture a pokemon. If successful it will be stored internally and return true
 // else returns false.
-func Catch(pokemonName string) (bool, error) {
+func Catch(pokedex map[string]pokemonapi.Pokemon, pokemonName string) (bool, error) {
 	if len(pokemonName) == 0 {
 		return false, fmt.Errorf("pokemonName cannot be an empty string")
 	}
@@ -64,9 +32,10 @@ func Catch(pokemonName string) (bool, error) {
 	if !isCaught {
 		return false, nil
 	}
-	if _, found := discoveredPokemon[pokemonName]; !found {
-		discoveredPokemon[pokemonName] = pokemon
+	if _, found := pokedex[pokemonName]; !found {
+		pokedex[pokemonName] = pokemon
 	}
+	slog.Debug(fmt.Sprintf("pokedex size: %v", len(pokedex)))
 	return true, nil
 }
 
@@ -101,4 +70,18 @@ func Explore(locationName string) ([]string, error) {
 		results[i] = pokemonEncounter.Pokemon.Name
 	}
 	return results, nil
+}
+
+func Pokedex(pokedex map[string]pokemonapi.Pokemon) []string {
+	if len(pokedex) == 0 {
+		return []string{}
+	}
+
+	out := make([]string, len(pokedex))
+	i := 0
+	for key := range pokedex {
+		out[i] = key
+		i++
+	}
+	return out
 }

@@ -6,7 +6,14 @@ import (
 	"pokemoncli/internal/pokedexservice"
 	"pokemoncli/internal/pokemonapi"
 	"sort"
+	"strconv"
 )
+
+var pokedex map[string]pokemonapi.Pokemon
+
+func init() {
+	pokedex = make(map[string]pokemonapi.Pokemon)
+}
 
 func commandExit(args ...string) error {
 	os.Exit(0)
@@ -83,13 +90,14 @@ func commandCatch(args ...string) error {
 	}
 	pokemonName := args[0]
 
-	isCaught, err := pokedexservice.Catch(pokemonName)
+	isCaught, err := pokedexservice.Catch(pokedex, pokemonName)
 	if err != nil {
 		return err
 	}
 
 	if isCaught {
 		fmt.Printf("%v was caught!\n", pokemonName)
+		fmt.Println("You may now inspect it with the `inspect` command.")
 	} else {
 		fmt.Printf("%v escaped!\n", pokemonName)
 	}
@@ -103,8 +111,36 @@ func commandInspect(args ...string) error {
 	}
 	pokemonName := args[0]
 
-	pokedexservice.Inspect(pokemonName)
+	pokemon := pokedexservice.Inspect(pokedex, pokemonName)
 
+	printMainValue("Name", pokemon.Name)
+	printMainValue("Height", strconv.Itoa(pokemon.Height))
+	printMainValue("Weight", strconv.Itoa(pokemon.Weight))
+	printMainValue("Stats", "")
+	for _, statData := range pokemon.Stats {
+		printListValues(statData.Stat.Name, strconv.Itoa(statData.BaseStat))
+	}
+	printMainValue("Types", "")
+	for _, pType := range pokemon.Types {
+		printListValues(pType.Type.Name, "")
+	}
+	return nil
+}
+
+func commandPokedex(args ...string) error {
+	if len(args) > 0 {
+		fmt.Println("Pokedex does not take any arguments")
+		return nil
+	}
+	pokemonList := pokedexservice.Pokedex(pokedex)
+	if len(pokedex) == 0 {
+		fmt.Println("No pokemon registered in pokedex yet, go `catch` some pokemon!")
+		return nil
+	}
+	fmt.Println("Your Pokedex:")
+	for _, mon := range pokemonList {
+		printListValues(mon, "")
+	}
 	return nil
 }
 
