@@ -20,7 +20,7 @@ func GetResource[T any](route string, out *T) error {
 		if strings.HasPrefix(err.Error(), "resource doesn't exist at:") {
 			slog.Info("No resources found for route: " + route)
 			*out = zero
-			return nil
+			return fmt.Errorf("Pokemon does not exist")
 		}
 		return err
 	}

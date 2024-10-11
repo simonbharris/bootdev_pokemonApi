@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 )
@@ -17,7 +16,6 @@ func beginCli() {
 		userInput := scanner.Text()
 		words := strings.Split(userInput, " ")
 		commandWord := words[0]
-		slog.Debug("command received: " + commandWord)
 		cmd, found := cliCommands[commandWord]
 		if !found {
 			fmt.Println("Invalid command. see 'help'")
