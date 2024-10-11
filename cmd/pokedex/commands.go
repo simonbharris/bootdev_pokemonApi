@@ -96,4 +96,16 @@ func commandCatch(args ...string) error {
 	return nil
 }
 
+func commandInspect(args ...string) error {
+	if len(args) != 1 {
+		fmt.Println("explore requires exactly 1 area name. See help")
+		return nil
+	}
+	pokemonName := args[0]
+
+	pokedexservice.Inspect(pokemonName)
+
+	return nil
+}
+
 /* https://pokeapi.co/api/v2/location/{id or name}/ */

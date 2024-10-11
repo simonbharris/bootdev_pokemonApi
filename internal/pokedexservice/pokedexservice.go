@@ -6,12 +6,46 @@ import (
 	"math"
 	"math/rand"
 	"pokemoncli/internal/pokemonapi"
+	"strconv"
+	"strings"
 )
 
 var discoveredPokemon map[string]pokemonapi.Pokemon
 
 func init() {
 	discoveredPokemon = make(map[string]pokemonapi.Pokemon)
+}
+
+func Inspect(pokemonName string) {
+	pokemon, found := discoveredPokemon[pokemonName]
+	if !found {
+		fmt.Println("you have not caught that pokemon")
+		return
+	}
+	printMainValue("Name", pokemon.Name)
+	printMainValue("Height", strconv.Itoa(pokemon.Height))
+	printMainValue("Weight", strconv.Itoa(pokemon.Weight))
+	printMainValue("Stats", "")
+	for _, statData := range pokemon.Stats {
+		printListValues(statData.Stat.Name, strconv.Itoa(statData.BaseStat))
+	}
+	printMainValue("Types", "")
+	for _, pType := range pokemon.Types {
+		printListValues(pType.Type.Name, "")
+	}
+}
+
+func printMainValue(key, value string) {
+	fmt.Printf("%v: %v\n", key, value)
+}
+
+// if value is 0-length, don't print a `:`
+func printListValues(key, value string) {
+	if len(value) == 0 {
+		fmt.Printf("  - %v\n", strings.ToLower(key))
+	} else {
+		fmt.Printf("  -%v: %v\n", strings.ToLower(key), value)
+	}
 }
 
 // Attempts to capture a pokemon. If successful it will be stored internally and return true
